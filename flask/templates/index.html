@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vision AI</title>
+
+<style>
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto;
+}
+
+body {
+    background: linear-gradient(135deg, #1f1f1f, #2c2c2c);
+    color: white;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+
+/* 카드 */
+.container {
+    width: 360px;
+    background: rgba(255,255,255,0.05);
+    backdrop-filter: blur(20px);
+    border-radius: 25px;
+    padding: 20px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+}
+
+/* 상단 */
+.header {
+    text-align: center;
+    margin-bottom: 15px;
+}
+
+.header h1 {
+    font-size: 20px;
+    font-weight: 600;
+}
+
+/* 카메라 */
+video {
+    width: 100%;
+    border-radius: 20px;
+}
+
+/* 캡처 버튼 */
+.capture-btn {
+    width: 70px;
+    height: 70px;
+    background: white;
+    border-radius: 50%;
+    margin: 15px auto;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+    transition: 0.2s;
+}
+
+.capture-btn:active {
+    transform: scale(0.9);
+}
+
+.inner-circle {
+    width: 55px;
+    height: 55px;
+    border: 3px solid black;
+    border-radius: 50%;
+}
+
+/* 결과 */
+.result {
+    margin-top: 15px;
+    padding: 12px;
+    background: rgba(255,255,255,0.08);
+    border-radius: 15px;
+    font-size: 15px;
+    min-height: 50px;
+    text-align: center;
+}
+
+/* 로딩 */
+.loading {
+    text-align: center;
+    font-size: 13px;
+    opacity: 0.7;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+    <div class="header">
+        <h1>📸 Vision AI</h1>
+    </div>
+
+    <video id="video" autoplay playsinline></video>
+    <canvas id="canvas" style="display:none;"></canvas>
+
+    <div class="capture-btn" onclick="capture()">
+        <div class="inner-circle"></div>
+    </div>
+
+    <div class="loading" id="loading"></div>
+    <div class="result" id="result">사진을 찍어보세요</div>
+</div>
+
+<script>
+const video = document.getElementById("video");
+const canvas = document.getElementById("canvas");
+
+// 자동으로 카메라 실행 (요즘 UX)
+navigator.mediaDevices.getUserMedia({ video: true })
+.then(stream => {
+    video.srcObject = stream;
+})
+.catch(err => {
+    alert("카메라 권한 필요");
+});
+
+// 촬영
+function capture() {
+    const ctx = canvas.getContext("2d");
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+
+    ctx.drawImage(video, 0, 0);
+
+    canvas.toBlob(blob => {
+        const formData = new FormData();
+        formData.append("image", blob, "capture.png");
+
+        document.getElementById("loading").innerText = "Analyzing...";
+        document.getElementById("result").innerText = "";
+
+        fetch("/", {
+            method: "POST",
+            body: formData
+        })
+        .then(res => res.json())
+        .then(data => {
+            document.getElementById("loading").innerText = "";
+            document.getElementById("result").innerText = data.caption;
+        })
+        .catch(err => {
+            document.getElementById("loading").innerText = "";
+            document.getElementById("result").innerText = "에러 발생";
+        });
+
+    }, "image/png");
+}
+</script>
+
+</body>
+</html>
